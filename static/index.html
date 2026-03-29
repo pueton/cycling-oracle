@@ -174,7 +174,12 @@
     <span class="u-ico">☕</span>
     <div class="u-label" data-i18n="uploadLabel">Upload your coffee photo</div>
     <div class="u-hint" data-i18n="uploadHint">Flat white, cortado, whatever — as long as there's foam</div>
+    <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;">
+      <button onclick="event.stopPropagation();document.getElementById('cameraInput').click()" style="background:var(--red);border:none;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 16px;cursor:pointer;" data-i18n="cameraBtn">📷 Take Photo</button>
+      <button onclick="event.stopPropagation();document.getElementById('fileInput').click()" style="background:none;border:1px solid var(--border);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 16px;cursor:pointer;" data-i18n="libraryBtn">🖼 Library</button>
+    </div>
     <input type="file" id="fileInput" accept="image/*">
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
   </div>
   <div class="preview-wrap" id="previewWrap">
     <div class="preview-frame"><img id="previewImg" src="" alt="Preview"></div>
@@ -411,6 +416,8 @@ uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.style.b
 uploadZone.addEventListener('dragleave',()=>uploadZone.style.borderColor='');
 uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.style.borderColor='';const f=e.dataTransfer.files[0];if(f?.type.startsWith('image/'))loadFile(f);});
 fileInput.addEventListener('change',()=>{if(fileInput.files[0])loadFile(fileInput.files[0]);});
+document.getElementById('cameraInput').addEventListener('change',function(){if(this.files[0])loadFile(this.files[0]);});
+document.getElementById('cameraInput').addEventListener('change',function(){if(this.files[0])loadFile(this.files[0]);});
 document.getElementById('changeBtn').addEventListener('click',()=>{
   selectedFile=null; fileInput.value='';
   previewWrap.classList.remove('visible'); uploadZone.style.display='block';
