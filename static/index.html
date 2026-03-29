@@ -14,7 +14,16 @@
   h1 { font-family:'Barlow Condensed',sans-serif; font-size:clamp(2.8rem,9vw,5rem); font-weight:900; text-transform:uppercase; line-height:.95; letter-spacing:-1px; }
   h1 span { color:var(--red); }
   .tagline { margin-top:10px; color:var(--muted); font-size:.88rem; line-height:1.6; }
-  .rule { display:flex; align-items:center; gap:12px; margin:24px 0; }
+
+  /* Weather strip */
+  .weather-strip { display:flex; align-items:center; gap:12px; background:var(--surf); border:1px solid var(--border); padding:12px 16px; margin:20px 0; min-height:52px; }
+  .w-icon { font-size:1.3rem; flex-shrink:0; }
+  .w-main { font-size:.88rem; color:var(--fg); font-weight:500; }
+  .w-hint { font-size:.75rem; color:var(--muted); font-style:italic; }
+  .w-btn { margin-left:auto; background:none; border:1px solid rgba(232,0,45,.4); color:var(--red); font-family:'Barlow Condensed',sans-serif; font-size:.68rem; letter-spacing:2px; text-transform:uppercase; padding:4px 10px; cursor:pointer; flex-shrink:0; transition:all .2s; }
+  .w-btn:hover { background:var(--rdim); }
+
+  .rule { display:flex; align-items:center; gap:12px; margin:20px 0; }
   .rule::before,.rule::after { content:''; flex:1; height:1px; background:var(--border); }
   .rule span { font-family:'Barlow Condensed',sans-serif; font-size:.65rem; letter-spacing:4px; text-transform:uppercase; color:var(--muted); }
   .upload-zone { border:1px dashed rgba(232,0,45,.35); padding:40px 24px; text-align:center; cursor:pointer; transition:all .25s; background:var(--surf); }
@@ -50,6 +59,8 @@
   .r-sec { font-family:'Barlow Condensed',sans-serif; font-size:.63rem; letter-spacing:5px; text-transform:uppercase; color:var(--red); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
   .r-sec::after { content:''; flex:1; height:1px; background:var(--border); }
   .reading { font-size:.92rem; line-height:1.8; color:var(--fg); margin-bottom:24px; font-style:italic; }
+  .weather-result { display:none; background:var(--surf2); padding:10px 14px; margin-bottom:20px; font-size:.82rem; color:var(--muted); }
+  .weather-result.visible { display:block; }
   .presc { background:var(--surf2); padding:14px 18px; margin-bottom:24px; display:flex; align-items:center; gap:14px; }
   .presc-ico { font-size:1.4rem; flex-shrink:0; }
   .presc-lbl { font-family:'Barlow Condensed',sans-serif; font-size:.68rem; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
@@ -65,7 +76,19 @@
   <div class="badge">Pre-Ride Ritual</div>
   <h1>The Espresso<br><span>Oracle</span></h1>
   <p class="tagline">Upload your flat white. The foam knows your legs.<br>The oracle prescribes your ride.</p>
+
+  <!-- Weather -->
+  <div class="weather-strip" id="weatherStrip">
+    <span class="w-icon" id="wIcon">🌡</span>
+    <div>
+      <div class="w-main" id="wMain" style="color:var(--muted);font-style:italic">Share location for weather-aware reading</div>
+      <div id="wSub"></div>
+    </div>
+    <button class="w-btn" id="wBtn">Enable</button>
+  </div>
+
   <div class="rule"><span>Read the foam</span></div>
+
   <div class="upload-zone" id="uploadZone">
     <span class="u-ico">☕</span>
     <div class="u-label">Upload your coffee photo</div>
@@ -82,6 +105,7 @@
     <div class="spin-label">Analysing foam structure...</div>
   </div>
   <div class="error-msg" id="errorMsg"></div>
+
   <div class="oracle-card" id="oracleCard">
     <div class="r-head">
       <div class="r-avatar">⚡</div>
@@ -93,6 +117,7 @@
     <div class="r-body">
       <div class="r-sec">The foam speaks</div>
       <div class="reading" id="readingText"></div>
+      <div class="weather-result" id="weatherResult"></div>
       <div class="r-sec">Ride prescription</div>
       <div class="presc">
         <span class="presc-ico">🚴</span>
@@ -110,6 +135,7 @@
   </div>
   <footer>Espresso Oracle · Road Cycling Edition</footer>
 </div>
+
 <script>
   const QUOTES=[
     {t:"Ride as much or as little, as long or as short as you feel. But ride.",a:"Eddy Merckx"},
@@ -123,82 +149,93 @@
     {t:"When it's raining and I don't want to go out — those are the days I force myself to ride.",a:"Tom Boonen"},
     {t:"To be a cyclist is to be a student of pain.",a:"Tim Krabbe"},
   ];
+  const WI={0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',51:'🌦',61:'🌧',63:'🌧',65:'🌧',80:'🌦',95:'⛈'};
 
-  const uploadZone = document.getElementById('uploadZone');
-  const fileInput  = document.getElementById('fileInput');
-  const previewWrap= document.getElementById('previewWrap');
-  const previewImg = document.getElementById('previewImg');
-  const changeBtn  = document.getElementById('changeBtn');
-  const oracleBtn  = document.getElementById('oracleBtn');
-  const loading    = document.getElementById('loading');
-  const errorMsg   = document.getElementById('errorMsg');
-  const oracleCard = document.getElementById('oracleCard');
+  let userLat=null, userLon=null;
 
-  let selectedFile = null;
+  const uploadZone=document.getElementById('uploadZone');
+  const fileInput=document.getElementById('fileInput');
+  const previewWrap=document.getElementById('previewWrap');
+  const previewImg=document.getElementById('previewImg');
+  const changeBtn=document.getElementById('changeBtn');
+  const oracleBtn=document.getElementById('oracleBtn');
+  const loading=document.getElementById('loading');
+  const errorMsg=document.getElementById('errorMsg');
+  const oracleCard=document.getElementById('oracleCard');
+  let selectedFile=null;
 
-  uploadZone.addEventListener('click', ()=>fileInput.click());
-  uploadZone.addEventListener('dragover', e=>{e.preventDefault();uploadZone.classList.add('drag');});
-  uploadZone.addEventListener('dragleave', ()=>uploadZone.classList.remove('drag'));
-  uploadZone.addEventListener('drop', e=>{e.preventDefault();uploadZone.classList.remove('drag');const f=e.dataTransfer.files[0];if(f?.type.startsWith('image/'))loadFile(f);});
-  fileInput.addEventListener('change', ()=>{if(fileInput.files[0])loadFile(fileInput.files[0]);});
-  changeBtn.addEventListener('click', ()=>{
+  // Weather
+  document.getElementById('wBtn').addEventListener('click', ()=>{
+    document.getElementById('wMain').textContent='Fetching conditions...';
+    document.getElementById('wMain').style.color='var(--muted)';
+    document.getElementById('wBtn').textContent='...';
+    navigator.geolocation.getCurrentPosition(async pos=>{
+      userLat=pos.coords.latitude; userLon=pos.coords.longitude;
+      try{
+        const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${userLat}&longitude=${userLon}&current=temperature_2m,weathercode,windspeed_10m`).then(r=>r.json());
+        const t=Math.round(w.current.temperature_2m), wind=Math.round(w.current.windspeed_10m), c=w.current.weathercode;
+        const CODES={0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',51:'Light drizzle',61:'Light rain',63:'Moderate rain',65:'Heavy rain',80:'Showers',95:'Thunderstorm'};
+        document.getElementById('wIcon').textContent=WI[c]||'🌡';
+        document.getElementById('wMain').textContent=`${t}°C · ${CODES[c]||'Unknown'} · ${wind} km/h wind`;
+        document.getElementById('wMain').style.color='var(--fg)';
+        document.getElementById('wMain').style.fontStyle='normal';
+        document.getElementById('wSub').textContent='Will be included in your reading';
+        document.getElementById('wSub').style.fontSize='.75rem';
+        document.getElementById('wSub').style.color='var(--red)';
+        document.getElementById('wBtn').textContent='✓ On';
+        document.getElementById('wBtn').style.opacity='.5';
+        document.getElementById('wBtn').disabled=true;
+      }catch(e){ document.getElementById('wMain').textContent='Could not fetch weather'; document.getElementById('wBtn').textContent='Retry'; }
+    }, ()=>{ document.getElementById('wMain').textContent='Location denied'; document.getElementById('wBtn').textContent='Retry'; });
+  });
+
+  // Upload
+  uploadZone.addEventListener('click',()=>fileInput.click());
+  uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('drag');});
+  uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('drag'));
+  uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.remove('drag');const f=e.dataTransfer.files[0];if(f?.type.startsWith('image/'))loadFile(f);});
+  fileInput.addEventListener('change',()=>{if(fileInput.files[0])loadFile(fileInput.files[0]);});
+  changeBtn.addEventListener('click',()=>{
     selectedFile=null; fileInput.value='';
-    previewWrap.classList.remove('visible');
-    uploadZone.style.display='block';
-    oracleBtn.disabled=true;
-    oracleCard.classList.remove('visible');
-    errorMsg.classList.remove('visible');
+    previewWrap.classList.remove('visible'); uploadZone.style.display='block';
+    oracleBtn.disabled=true; oracleCard.classList.remove('visible'); errorMsg.classList.remove('visible');
   });
 
   function loadFile(file){
     selectedFile=file;
     const r=new FileReader();
     r.onload=e=>{
-      previewImg.src=e.target.result;
-      uploadZone.style.display='none';
-      previewWrap.classList.add('visible');
-      oracleBtn.disabled=false;
-      oracleCard.classList.remove('visible');
-      errorMsg.classList.remove('visible');
+      previewImg.src=e.target.result; uploadZone.style.display='none';
+      previewWrap.classList.add('visible'); oracleBtn.disabled=false;
+      oracleCard.classList.remove('visible'); errorMsg.classList.remove('visible');
     };
     r.readAsDataURL(file);
   }
 
-  function showError(msg){
-    loading.classList.remove('visible');
-    errorMsg.textContent=msg;
-    errorMsg.classList.add('visible');
-    oracleBtn.disabled=false;
-  }
+  function showError(msg){ loading.classList.remove('visible'); errorMsg.textContent=msg; errorMsg.classList.add('visible'); oracleBtn.disabled=false; }
 
   oracleBtn.addEventListener('click', async()=>{
     if(!selectedFile) return;
-    oracleBtn.disabled=true;
-    loading.classList.add('visible');
-    oracleCard.classList.remove('visible');
-    errorMsg.classList.remove('visible');
+    oracleBtn.disabled=true; loading.classList.add('visible');
+    oracleCard.classList.remove('visible'); errorMsg.classList.remove('visible');
 
     const q=QUOTES[Math.floor(Math.random()*QUOTES.length)];
     const formData=new FormData();
     formData.append('file', selectedFile);
+    if(userLat!==null){ formData.append('lat', userLat); formData.append('lon', userLon); }
 
     try{
       const res=await fetch('/api/oracle',{method:'POST',body:formData});
-      if(!res.ok){
-        const err=await res.json().catch(()=>({}));
-        showError('Error '+res.status+': '+(err?.detail||res.statusText));
-        return;
-      }
+      if(!res.ok){ const err=await res.json().catch(()=>({})); showError('Error '+res.status+': '+(err?.detail||res.statusText)); return; }
       const p=await res.json();
       document.getElementById('readingText').textContent=p.reading+' '+p.coffeeVerdict;
       document.getElementById('prescText').textContent=p.prescription;
       document.getElementById('quoteText').textContent='"'+q.t+'"';
       document.getElementById('quoteAttr').textContent='— '+q.a;
-      loading.classList.remove('visible');
-      oracleCard.classList.add('visible');
-    }catch(e){
-      showError('Error: '+e.message);
-    }
+      const wr=document.getElementById('weatherResult');
+      if(p.weather){ wr.textContent='🌡 Conditions: '+p.weather; wr.classList.add('visible'); }
+      loading.classList.remove('visible'); oracleCard.classList.add('visible');
+    }catch(e){ showError('Error: '+e.message); }
     oracleBtn.disabled=false;
   });
 </script>
