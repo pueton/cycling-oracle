@@ -119,13 +119,16 @@ async def consult_oracle(
 
 # ── Strava OAuth ──
 @app.get("/api/strava/auth")
-async def strava_auth():
+async def strava_auth(request: Request):
+    # Build redirect URI from actual request host as fallback
+    base = BASE_URL.rstrip("/") if BASE_URL else f"{request.url.scheme}://{request.url.netloc}"
+    redirect_uri = f"{base}/api/strava/callback"
     from urllib.parse import quote
-    redirect_uri = quote(f"{BASE_URL}/api/strava/callback", safe="")
+    encoded_uri = quote(redirect_uri, safe="")
     url = (
         f"https://www.strava.com/oauth/authorize"
         f"?client_id={STRAVA_CLIENT_ID}"
-        f"&redirect_uri={redirect_uri}"
+        f"&redirect_uri={encoded_uri}"
         f"&response_type=code"
         f"&approval_prompt=auto"
         f"&scope=read,activity:read"
