@@ -4,7 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Espresso Oracle</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#e8002d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Espresso Oracle">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Barlow:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#e8002d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Espresso Oracle">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#e8002d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Espresso Oracle">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <style>
   :root { --bg:#0e0e0f; --surf:#1a1a1c; --surf2:#242426; --red:#e8002d; --rdim:rgba(232,0,45,0.12); --fg:#f4f4f5; --muted:#6b6b72; --border:rgba(255,255,255,0.08); --strava:#fc4c02; }
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -506,6 +524,13 @@ async function renderChallenge(routeType){
 }
 
 setLang('en');
+
+// Register Service Worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  });
+}
 
 function stravaAuth() {
   const redirectUri = encodeURIComponent(window.location.origin + '/api/strava/callback');
