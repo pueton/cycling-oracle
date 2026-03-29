@@ -136,7 +136,7 @@
       <div class="strava-name" id="stravaName" data-i18n="stravaConnect">Connect with Strava</div>
       <div class="strava-sub" id="stravaSub" data-i18n="stravaSubtext">Unlock segment challenges near you</div>
     </div>
-    <a class="strava-btn" id="stravaBtn" href="/api/strava/auth" data-i18n="stravaBtn">Connect</a>
+    <a class="strava-btn" id="stravaBtn" href="#" onclick="stravaAuth()" data-i18n="stravaBtn">Connect</a>
   </div>
 
   <!-- Weather -->
@@ -506,6 +506,12 @@ async function renderChallenge(routeType){
 }
 
 setLang('en');
+
+function stravaAuth() {
+  const redirectUri = encodeURIComponent(window.location.origin + '/api/strava/callback');
+  const url = `https://www.strava.com/oauth/authorize?client_id=217662&redirect_uri=${redirectUri}&response_type=code&approval_prompt=auto&scope=read,activity:read`;
+  window.location.href = url;
+}
 </script>
 </body>
 </html>
